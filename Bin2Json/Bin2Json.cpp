@@ -100,7 +100,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	nBufferIdx+= sizeof(JSON_TAIL_STR)-1;
 
 	//encode picture file
-	if (nChar == 'Y' || nChar == 'y')
+	if (bUsingZip)
 	{
 		int nEncodeLen = GeneratePicZipContent(cBinInputBytes, MAX_INPUT_FILE_SIZE, nPictureID, &gapOutPutFile[nBufferIdx]);
 		nBufferIdx += nEncodeLen;
@@ -118,7 +118,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	//write json file to output file
 	char outputFileName[MAX_FILE_NAME_LEN] = "";
 	strcpy_s(outputFileName, MAX_FILE_NAME_LEN, fileName);
-	strcat_s(outputFileName, MAX_FILE_NAME_LEN, ".json");
+	if (bUsingZip)
+	{
+		strcat_s(outputFileName, MAX_FILE_NAME_LEN, "z.json");
+	}
+	else
+	{
+		strcat_s(outputFileName, MAX_FILE_NAME_LEN, ".json");
+	}
 	FILE* jsonOutputFile;
 	nErr = fopen_s(&jsonOutputFile, outputFileName,"wb");
 	if (jsonOutputFile == NULL || nErr != 0)
