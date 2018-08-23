@@ -12,11 +12,12 @@ typedef unsigned char uint8_t;
 using namespace std;
 
 #define MAX_FILE_NAME_LEN 100
-#define BIN_FILE_LENGTH 4736
-#define MAX_INPUT_FILE_SIZE 4736
-#define MAX_OUTPUT_FILE_LENGTH 10000
+#define BIN_FILE_LENGTH 10000
+#define MAX_INPUT_FILE_SIZE 10000
+#define MAX_OUTPUT_FILE_LENGTH 20000
 
 char gapOutPutFile[MAX_OUTPUT_FILE_LENGTH];
+uint8_t gapBinInputBytes[MAX_INPUT_FILE_SIZE];
 
 char JSON_TAIL_STR[] = ",\"data\":\"";
 
@@ -25,7 +26,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	char fileName[MAX_FILE_NAME_LEN];
 	char cPassword[30];
 	char cMacAddress[30];
-	uint8_t cBinInputBytes[MAX_INPUT_FILE_SIZE];
+	
 	int nPictureID;
 
 	cout<<"Input BIN format picture file name:";
@@ -61,22 +62,33 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	//read bin picture file
-	FILE *picBinFile;
-	int nErr = fopen_s(&picBinFile, fileName,"rb");
-	if (picBinFile == NULL || nErr != 0)
+	FILE *fPicBinFile;
+	int nErr = fopen_s(&fPicBinFile, fileName,"rb");
+	if (fPicBinFile == NULL || nErr != 0)
 	{
 		cerr<<"Open input file failed";
 		return 1;
 	}
+
+	fseek(fPicBinFile,0L,SEEK_END);
+    int size = ftell(fPicBinFile);
+	if (size > MAX_INPUT_FILE_SIZE)
+	{
+		cerr<<"read file length error";
+		fclose(fPicBinFile);
+		return 1;
+	}
+
 	//read bin file
-	int ret = fread(cBinInputBytes,MAX_INPUT_FILE_SIZE,1,picBinFile);
+	fseek(fPicBinFile,0L,SEEK_SET);
+	int ret = fread(gapBinInputBytes,size,1,fPicBinFile);
 	if (ret == 0)
 	{
 		cerr<<"read file error";
-		fclose(picBinFile);
+		fclose(fPicBinFile);
 		return 1;
 	}
-	fclose(picBinFile);
+	fclose(fPicBinFile);
 
 	//encode message
 	uint16_t nBufferIdx = 0;
@@ -102,12 +114,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	//encode picture file
 	if (bUsingZip)
 	{
-		int nEncodeLen = GeneratePicZipContent(cBinInputBytes, MAX_INPUT_FILE_SIZE, nPictureID, &gapOutPutFile[nBufferIdx]);
+		int nEncodeLen = GeneratePicZipContent(gapBinInputBytes, size, nPictureID, &gapOutPutFile[nBufferIdx]);
 		nBufferIdx += nEncodeLen;
 	}
 	else
 	{
-		int nEncodeLen = GeneratePicContent(cBinInputBytes, MAX_INPUT_FILE_SIZE, nPictureID, &gapOutPutFile[nBufferIdx]);
+		int nEncodeLen = GeneratePicContent(gapBinInputBytes, size, nPictureID, &gapOutPutFile[nBufferIdx]);
 		nBufferIdx += nEncodeLen;
 	}
 

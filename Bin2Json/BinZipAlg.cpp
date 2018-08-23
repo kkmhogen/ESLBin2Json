@@ -19,32 +19,34 @@
 #define FF_VALUE_SYMBLE 'G'
 #define ZERO_VALUE_SYMBLE 'H'
 
-int byte2Hex(const ZipStru* zipDictory, uint16_t nDicNum, uint8_t nByteValue, char* hexValue)
+//inputByteValue转换为十六进制字符，如果inputByteValue为压缩字符，则进行压缩
+//返回值为输出字符长度，1或者2
+int byte2HexString(const ZipStru* zipDictory, uint16_t nDicNum, uint8_t inputByteValue, char* pOutputHexStrVaue)
 {
     unsigned char highByte, lowByte;
 
-	if (zipDictory[nByteValue].nSymbleTag != -1)
+	if (zipDictory[inputByteValue].nSymbleTag != -1)
 	{
-		*hexValue = zipDictory[nByteValue].nSymbleTag;
+		*pOutputHexStrVaue = zipDictory[inputByteValue].nSymbleTag;
         return 1;
 	}
 
-    highByte = nByteValue >> 4;
-    lowByte = nByteValue & 0x0f ;
+    highByte = inputByteValue >> 4;
+    lowByte = inputByteValue & 0x0f ;
 
     highByte += 0x30;
 
     if (highByte > 0x39)
-        hexValue[0] = highByte + 0x07;
+        pOutputHexStrVaue[0] = highByte + 0x07;
     else
-        hexValue[0] = highByte;
+        pOutputHexStrVaue[0] = highByte;
 
     lowByte += 0x30;
 
     if (lowByte > 0x39)
-        hexValue[1] = lowByte + 0x07;
+        pOutputHexStrVaue[1] = lowByte + 0x07;
     else
-        hexValue[1] = lowByte;
+        pOutputHexStrVaue[1] = lowByte;
 
 	return 2;
 }
@@ -121,7 +123,7 @@ int GenerateZipDictory(const uint8_t* pSourceValueCode, uint16_t sourceValueLen,
 int ZipBytes2String(const ZipStru* zipDictory, uint16_t nDicNum, const uint8_t* pSource, uint16_t sourceValueLen, char* pOutputZipString)
 {
     int maxValueIndex = sourceValueLen - 1;
-    int nLastZipCharLen;
+    int nLastZipCharLen;   //上一个压缩字符长度，1或者2
     uint8_t lastZipValue;
     int nState = STATE_NO_ZIP;
     char* pWriteLen;
@@ -133,11 +135,13 @@ int ZipBytes2String(const ZipStru* zipDictory, uint16_t nDicNum, const uint8_t* 
         {
             if (pSource[i] == pSource[i+1] && i < maxValueIndex)
             {
+				//write zip char length
                 pWriteLen = pWriteValue;
-                *pWriteLen = MIN_NUM_SYMBLE;
+                *pWriteLen = MIN_NUM_SYMBLE-1;
                 pWriteValue++;
                 
-                nLastZipCharLen = byte2Hex(zipDictory, nDicNum, pSource[i], pWriteValue);
+				//write zip char
+                nLastZipCharLen = byte2HexString(zipDictory, nDicNum, pSource[i], pWriteValue);
                 pWriteValue += nLastZipCharLen;
                 
                 lastZipValue = pSource[i];
@@ -145,7 +149,7 @@ int ZipBytes2String(const ZipStru* zipDictory, uint16_t nDicNum, const uint8_t* 
             }
             else
             {
-                nLastZipCharLen = byte2Hex(zipDictory, nDicNum, pSource[i], pWriteValue);
+                nLastZipCharLen = byte2HexString(zipDictory, nDicNum, pSource[i], pWriteValue);
                 pWriteValue += nLastZipCharLen;
             }
         }
@@ -195,7 +199,7 @@ int UnZipString2Bytes(const uint8_t* pUnzipCodeArray, uint16_t nDicNum, const ch
                     }
                     else if (pSourceZipString[i] >= MIN_NUM_SYMBLE && pSourceZipString[i] <= MAX_NUM_SYMBLE)
                     {                        
-                        gapZipValueLen = pSourceZipString[i] - MIN_NUM_SYMBLE + 1;
+                        gapZipValueLen = pSourceZipString[i] - MIN_NUM_SYMBLE + 2;
 						gapZipState = STATE_PARSE_ZIP_HEAD;    
                     }
                     else
